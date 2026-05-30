@@ -1,0 +1,104 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("EMPLOYEE") // "ADMIN", "MANAGER", "EMPLOYEE"
+  status        String         @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tasksAssigned Task[]         @relation("AssignedTo")
+  tasksCreated  Task[]         @relation("AssignedBy")
+  workLogs      WorkLog[]
+  comments      Comment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  accountRequests AccountRequest[] @relation("RequestedBy")
+}
+
+model Task {
+  id           String      @id @default(uuid())
+  title        String
+  description  String
+  assignedToId String
+  assignedTo   User        @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedById String
+  assignedBy   User        @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+  priority     String      @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  status       String      @default("NOT_STARTED") // "NOT_STARTED", "IN_PROGRESS", "BLOCKED", "COMPLETED"
+  deadline     DateTime
+  category     String?     @default("General")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  workLogs     WorkLog[]
+  comments     Comment[]
+}
+
+model WorkLog {
+  id           String   @id @default(uuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  description  String
+  hoursWorked  Float
+  date         DateTime @default(now())
+  aiScore      Int?     // 0 to 100
+  aiFeedback   String?
+  aiIssues     String?
+  attachments  String?  // Semicolon separated mock URLs
+  createdAt    DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g., "USER_CREATE", "TASK_CREATE", "TASK_ASSIGN", "STATUS_CHANGE", "WORKLOG_SUBMIT", "COMMENT_ADD"
+  entityType String   // e.g., "User", "Task", "WorkLog", "Comment"
+  entityId   String
+  prevValue  String?  // JSON string
+  newValue   String?  // JSON string
+  timestamp  DateTime @default(now())
+}
+
+model AccountRequest {
+  id            String   @id @default(uuid())
+  name          String
+  email         String
+  password      String
+  role          String   @default("EMPLOYEE") // "EMPLOYEE", "MANAGER"
+  requestedById String
+  requestedBy   User     @relation("RequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  status        String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  createdAt     DateTime @default(now())
+}
