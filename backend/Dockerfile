@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install system dependencies required by Prisma engines on Alpine
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Set default environment variables for seamless out-of-the-box deployments
