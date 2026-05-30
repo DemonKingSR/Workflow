@@ -16,4 +16,4 @@ RUN npm run build || true
 
 EXPOSE 5000
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma db push --schema=src/prisma/schema.prisma && node dist/prisma/seed.js && node dist/index.js"]
